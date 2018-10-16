@@ -1,0 +1,73 @@
+pipeline {
+
+    agent any
+
+    triggers {
+        cron('H */8 * * *')
+    }
+
+    environment {
+        imageName = 'vaporio/foundation'
+    }
+
+    stages {
+
+        stage('Sync') {
+            parallel {
+                stage('ubuntu:bionic') {
+                    steps {
+                        sh './update.sh bionic'
+                    }
+                }
+
+                stage('ubuntu:xenial') {
+                    steps {
+                        sh './update.sh xenial'
+                    }
+                }
+            }
+        }
+
+        stage('Build') {
+            parallel {
+                stage('ubuntu:bionic') {
+                    steps {
+                        sh "docker build --build-arg VERSION=bionic . -t bionic:${env.BRANCH_NAME}.${env.BUILD_NUMBER} --compress"
+                    }
+                }
+
+                stage('ubuntu:xenial') {
+                    steps {
+                        sh "docker build --build-arg VERSION=xenial . -t xenial:${env.BRANCH_NAME}.${env.BUILD_NUMBER} --compress"
+                    }
+                }
+            }
+        }
+
+        stage('Publish') {
+            parallel {
+                stage('ubuntu:bionic') {
+                    steps {
+                        sh "docker tag bionic:${env.BRANCH_NAME}.${env.BUILD_NUMBER} ${imageName}:ubuntu-18.04"
+                        withDockerRegistry(registry: [credentialsId: 'vio-docker-hub']) {
+                            sh "docker push ${imageName}:ubuntu-18.04"
+                        }
+                        sh "docker tag bionic:${env.BRANCH_NAME}.${env.BUILD_NUMBER} ${imageName}:latest"
+                        withDockerRegistry(registry: [credentialsId: 'vio-docker-hub']) {
+                            sh "docker push ${imageName}:latest"
+                        }
+                    }
+                }
+
+                stage('ubuntu:xenial') {
+                    steps {
+                        sh "docker tag xenial:${env.BRANCH_NAME}.${env.BUILD_NUMBER} ${imageName}:ubuntu-16.04"
+                        withDockerRegistry(registry: [credentialsId: 'vio-docker-hub']) {
+                            sh "docker push ${imageName}:ubuntu-16.04"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
