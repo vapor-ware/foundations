@@ -52,6 +52,10 @@ pipeline {
                         withDockerRegistry(registry: [credentialsId: 'vio-docker-hub']) {
                             sh "docker push ${imageName}:ubuntu-18.04"
                         }
+                        sh "docker tag bionic:${env.BRANCH_NAME}.${env.BUILD_NUMBER} ${imageName}:bionic"
+                        withDockerRegistry(registry: [credentialsId: 'vio-docker-hub']) {
+                            sh "docker push ${imageName}:bionic"
+                        }
                         sh "docker tag bionic:${env.BRANCH_NAME}.${env.BUILD_NUMBER} ${imageName}:latest"
                         withDockerRegistry(registry: [credentialsId: 'vio-docker-hub']) {
                             sh "docker push ${imageName}:latest"
@@ -64,6 +68,10 @@ pipeline {
                         sh "docker tag xenial:${env.BRANCH_NAME}.${env.BUILD_NUMBER} ${imageName}:ubuntu-16.04"
                         withDockerRegistry(registry: [credentialsId: 'vio-docker-hub']) {
                             sh "docker push ${imageName}:ubuntu-16.04"
+                        }
+                        sh "docker tag xenial:${env.BRANCH_NAME}.${env.BUILD_NUMBER} ${imageName}:xenial"
+                        withDockerRegistry(registry: [credentialsId: 'vio-docker-hub']) {
+                            sh "docker push ${imageName}:xenial"
                         }
                     }
                 }
