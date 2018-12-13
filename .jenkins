@@ -32,13 +32,13 @@ pipeline {
             parallel {
                 stage('ubuntu:bionic') {
                     steps {
-                        sh "docker build --build-arg VERSION=bionic . -t bionic:${env.BRANCH_NAME}.${env.BUILD_NUMBER} --compress"
+                        sh "docker build --label build.source=${env.BRANCH_NAME} --label build.number=${env.BUILD_NUMBER} --build-arg VERSION=bionic . -t bionic:${env.BRANCH_NAME}.${env.BUILD_NUMBER} --compress"
                     }
                 }
 
                 stage('ubuntu:xenial') {
                     steps {
-                        sh "docker build --build-arg VERSION=xenial . -t xenial:${env.BRANCH_NAME}.${env.BUILD_NUMBER} --compress"
+                        sh "docker build --label build.source=${env.BRANCH_NAME} --label build.number=${env.BUILD_NUMBER} --build-arg VERSION=xenial . -t xenial:${env.BRANCH_NAME}.${env.BUILD_NUMBER} --compress"
                     }
                 }
             }
