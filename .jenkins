@@ -45,6 +45,9 @@ pipeline {
         }
 
         stage('Publish') {
+            when {
+                branch 'master'
+            }
             parallel {
                 stage('ubuntu:bionic') {
                     steps {
