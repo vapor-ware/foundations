@@ -14,13 +14,13 @@ pipeline {
 
         stage('Sync') {
             parallel {
-                stage('ubuntu:bionic') {
+                stage('ubuntu:bionic-amd64') {
                     steps {
                         sh './update.sh bionic'
                     }
                 }
 
-                stage('ubuntu:xenial') {
+                stage('ubuntu:xenial-amd64') {
                     steps {
                         sh './update.sh xenial'
                     }
@@ -48,15 +48,15 @@ pipeline {
 
         stage('Build') {
             parallel {
-                stage('ubuntu:bionic') {
+                stage('ubuntu:bionic-amd64') {
                     steps {
-                        sh "docker build --label build.source=${env.BRANCH_NAME} --label build.number=${env.BUILD_NUMBER} --build-arg VERSION=bionic . -t bionic:${env.BRANCH_NAME}.${env.BUILD_NUMBER} --compress"
+                        sh "docker build --label build.source=${env.BRANCH_NAME} --label build.number=${env.BUILD_NUMBER} --build-arg VERSION=bionic . -t bionic:amd64.${env.BRANCH_NAME}.${env.BUILD_NUMBER} --compress"
                     }
                 }
 
-                stage('ubuntu:xenial') {
+                stage('ubuntu:xenial-amd64') {
                     steps {
-                        sh "docker build --label build.source=${env.BRANCH_NAME} --label build.number=${env.BUILD_NUMBER} --build-arg VERSION=xenial . -t xenial:${env.BRANCH_NAME}.${env.BUILD_NUMBER} --compress"
+                        sh "docker build --label build.source=${env.BRANCH_NAME} --label build.number=${env.BUILD_NUMBER} --build-arg VERSION=xenial . -t xenial:amd64.${env.BRANCH_NAME}.${env.BUILD_NUMBER} --compress"
                     }
                 }
 
@@ -85,19 +85,32 @@ pipeline {
                 branch 'master'
             }
             parallel {
-                stage('ubuntu:bionic') {
+                stage('ubuntu:bionic-amd64') {
                     steps {
-                        sh "docker tag bionic:${env.BRANCH_NAME}.${env.BUILD_NUMBER} ${imageName}:ubuntu-18.04"
+                        sh "docker tag bionic:amd64.${env.BRANCH_NAME}.${env.BUILD_NUMBER} ${imageName}:ubuntu-18.04-amd64"
                         withDockerRegistry(registry: [credentialsId: 'vio-docker-hub']) {
-                            sh "docker push ${imageName}:ubuntu-18.04"
+                            sh "docker push ${imageName}:ubuntu-18.04-amd64"
                         }
-                        sh "docker tag bionic:${env.BRANCH_NAME}.${env.BUILD_NUMBER} ${imageName}:bionic"
+                        sh "docker tag bionic:amd64.${env.BRANCH_NAME}.${env.BUILD_NUMBER} ${imageName}:bionic-amd64"
                         withDockerRegistry(registry: [credentialsId: 'vio-docker-hub']) {
-                            sh "docker push ${imageName}:bionic"
+                            sh "docker push ${imageName}:bionic-amd64"
                         }
-                        sh "docker tag bionic:${env.BRANCH_NAME}.${env.BUILD_NUMBER} ${imageName}:latest"
+                        sh "docker tag bionic:amd64.${env.BRANCH_NAME}.${env.BUILD_NUMBER} ${imageName}:latest-amd64"
                         withDockerRegistry(registry: [credentialsId: 'vio-docker-hub']) {
-                            sh "docker push ${imageName}:latest"
+                            sh "docker push ${imageName}:latest-amd64"
+                        }
+                    }
+                }
+
+                stage('ubuntu:xenial-amd64') {
+                    steps {
+                        sh "docker tag xenial:amd64.${env.BRANCH_NAME}.${env.BUILD_NUMBER} ${imageName}:ubuntu-16.04-amd64"
+                        withDockerRegistry(registry: [credentialsId: 'vio-docker-hub']) {
+                            sh "docker push ${imageName}:ubuntu-16.04-amd64"
+                        }
+                        sh "docker tag xenial:amd64.${env.BRANCH_NAME}.${env.BUILD_NUMBER} ${imageName}:xenial-amd64"
+                        withDockerRegistry(registry: [credentialsId: 'vio-docker-hub']) {
+                            sh "docker push ${imageName}:xenial-amd64"
                         }
                     }
                 }
@@ -118,19 +131,6 @@ pipeline {
                         sh "docker tag bionic:arm64.${env.BRANCH_NAME}.${env.BUILD_NUMBER} ${imageName}:latest-arm64"
                         withDockerRegistry(registry: [credentialsId: 'vio-docker-hub']) {
                             sh "docker push ${imageName}:latest-arm64"
-                        }
-                    }
-                }
-
-                stage('ubuntu:xenial') {
-                    steps {
-                        sh "docker tag xenial:${env.BRANCH_NAME}.${env.BUILD_NUMBER} ${imageName}:ubuntu-16.04"
-                        withDockerRegistry(registry: [credentialsId: 'vio-docker-hub']) {
-                            sh "docker push ${imageName}:ubuntu-16.04"
-                        }
-                        sh "docker tag xenial:${env.BRANCH_NAME}.${env.BUILD_NUMBER} ${imageName}:xenial"
-                        withDockerRegistry(registry: [credentialsId: 'vio-docker-hub']) {
-                            sh "docker push ${imageName}:xenial"
                         }
                     }
                 }
