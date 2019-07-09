@@ -80,7 +80,7 @@ pipeline {
             }
         }
 
-        stage('Publish') {
+        stage('Publish Images') {
             when {
                 branch 'master'
             }
@@ -149,6 +149,27 @@ pipeline {
                             sh "docker push ${imageName}:xenial-arm64"
                         }
                     }
+                }
+            }
+        }
+
+        stage('Publish Manifests') {
+            when {
+                branch 'master'
+            }
+            steps {
+                sh "docker manifest create --amend ${imageName}:latest ${imageName}:latest-amd64 ${imageName}:latest-arm64"
+                sh "docker manifest create --amend ${imageName}:bionic ${imageName}:bionic-amd64 ${imageName}:bionic-arm64"
+                sh "docker manifest create --amend ${imageName}:ubuntu-18.04 ${imageName}:ubuntu-18.04-amd64 ${imageName}:ubuntu-18.04-arm64"
+                sh "docker manifest create --amend ${imageName}:xenial ${imageName}:xenial-amd64 ${imageName}:xenial-arm64"
+                sh "docker manifest create --amend ${imageName}:ubuntu-16.04 ${imageName}:ubuntu-16.04-amd64 ${imageName}:ubuntu-16.04-arm64"
+
+                withDockerRegistry(registry: [credentialsId: 'vio-docker-hub']) {
+                    sh "docker manifest push --purge ${imageName}:latest"
+                    sh "docker manifest push --purge ${imageName}:bionic"
+                    sh "docker manifest push --purge ${imageName}:ubuntu-18.04"
+                    sh "docker manifest push --purge ${imageName}:xenial"
+                    sh "docker manifest push --purge ${imageName}:ubuntu-16.04"
                 }
             }
         }
