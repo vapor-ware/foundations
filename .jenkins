@@ -1,208 +1,286 @@
 pipeline {
 
-    agent any
+  agent any
 
-    triggers {
-        cron('H */8 * * *')
+  triggers {
+    cron('H */8 * * *')
+  }
+
+  environment {
+    imageName = 'vaporio/foundation'
+  }
+
+  stages {
+    stage('Sync') {
+      parallel {
+        stage('ubuntu:bionic-amd64') {
+          steps {
+            sh './update.sh bionic'
+          }
+        }
+
+        stage('ubuntu:xenial-amd64') {
+          steps {
+            sh './update.sh xenial'
+          }
+        }
+
+        stage('ubuntu:focal-amd64') {
+          steps {
+            sh './update.sh focal'
+          }
+        }
+
+        stage('ubuntu:bionic-arm64') {
+          agent {
+            label 'arm64'
+          }
+          steps {
+            sh './update.sh bionic'
+          }
+        }
+
+        stage('ubuntu:xenial-arm64') {
+          agent {
+            label 'arm64'
+          }
+          steps {
+            sh './update.sh xenial'
+          }
+        }
+
+        stage('ubuntu:focal-arm64') {
+          agent {
+            label 'arm64'
+          }
+          steps {
+            sh './update.sh focal'
+          }
+        }
+      }
     }
 
-    environment {
-        imageName = 'vaporio/foundation'
+    stage('Build') {
+      parallel {
+        stage('ubuntu:bionic-amd64') {
+          steps {
+            sh "docker build --label build.source=${env.BRANCH_NAME} --label build.number=${env.BUILD_NUMBER} --build-arg VERSION=bionic . -t bionic:amd64.${env.BRANCH_NAME}.${env.BUILD_NUMBER} --compress"
+          }
+        }
+
+        stage('ubuntu:xenial-amd64') {
+          steps {
+            sh "docker build --label build.source=${env.BRANCH_NAME} --label build.number=${env.BUILD_NUMBER} --build-arg VERSION=xenial . -t xenial:amd64.${env.BRANCH_NAME}.${env.BUILD_NUMBER} --compress"
+          }
+        }
+
+        stage('ubuntu:focal-amd64') {
+          steps {
+            sh "docker build --label build.source=${env.BRANCH_NAME} --label build.number=${env.BUILD_NUMBER} --build-arg VERSION=focal . -t focal:amd64.${env.BRANCH_NAME}.${env.BUILD_NUMBER} --compress"
+          }
+        }
+
+        stage('ubuntu:bionic-arm64') {
+          agent {
+            label 'arm64'
+          }
+          steps {
+            sh "docker build --label build.source=${env.BRANCH_NAME} --label build.number=${env.BUILD_NUMBER} --build-arg VERSION=bionic --build-arg ARCH=arm64 . -t bionic:arm64.${env.BRANCH_NAME}.${env.BUILD_NUMBER} --compress"
+          }
+        }
+
+        stage('ubuntu:xenial-arm64') {
+          agent {
+            label 'arm64'
+          }
+          steps {
+            sh "docker build --label build.source=${env.BRANCH_NAME} --label build.number=${env.BUILD_NUMBER} --build-arg VERSION=xenial --build-arg ARCH=arm64 . -t xenial:arm64.${env.BRANCH_NAME}.${env.BUILD_NUMBER} --compress"
+          }
+        }
+
+        stage('ubuntu:focal-arm64') {
+          agent {
+            label 'arm64'
+          }
+          steps {
+            sh "docker build --label build.source=${env.BRANCH_NAME} --label build.number=${env.BUILD_NUMBER} --build-arg VERSION=focal --build-arg ARCH=arm64 . -t focal:arm64.${env.BRANCH_NAME}.${env.BUILD_NUMBER} --compress"
+          }
+        }
+      }
     }
 
-    stages {
+    stage('Publish Images') {
+      when {
+        branch 'master'
+      }
 
-        stage('Sync') {
-            parallel {
-                stage('ubuntu:bionic-amd64') {
-                    steps {
-                        sh './update.sh bionic'
-                    }
-                }
-
-                stage('ubuntu:xenial-amd64') {
-                    steps {
-                        sh './update.sh xenial'
-                    }
-                }
-
-                stage('ubuntu:bionic-arm64') {
-                    agent {
-                        label 'arm64'
-                    }
-                    steps {
-                        sh './update.sh bionic'
-                    }
-                }
-
-                stage('ubuntu:xenial-arm64') {
-                    agent {
-                        label 'arm64'
-                    }
-                    steps {
-                        sh './update.sh xenial'
-                    }
-                }
+      parallel {
+        stage('ubuntu:bionic-amd64') {
+          steps {
+            sh "docker tag bionic:amd64.${env.BRANCH_NAME}.${env.BUILD_NUMBER} ${imageName}:ubuntu-18.04-amd64"
+            withDockerRegistry(registry: [credentialsId: 'vio-docker-hub']) {
+              sh "docker push ${imageName}:ubuntu-18.04-amd64"
             }
+            sh "docker tag bionic:amd64.${env.BRANCH_NAME}.${env.BUILD_NUMBER} ${imageName}:bionic-amd64"
+            withDockerRegistry(registry: [credentialsId: 'vio-docker-hub']) {
+              sh "docker push ${imageName}:bionic-amd64"
+            }
+            sh "docker tag bionic:amd64.${env.BRANCH_NAME}.${env.BUILD_NUMBER} ${imageName}:latest-amd64"
+            withDockerRegistry(registry: [credentialsId: 'vio-docker-hub']) {
+              sh "docker push ${imageName}:latest-amd64"
+            }
+          }
         }
 
-        stage('Build') {
-            parallel {
-                stage('ubuntu:bionic-amd64') {
-                    steps {
-                        sh "docker build --label build.source=${env.BRANCH_NAME} --label build.number=${env.BUILD_NUMBER} --build-arg VERSION=bionic . -t bionic:amd64.${env.BRANCH_NAME}.${env.BUILD_NUMBER} --compress"
-                    }
-                }
-
-                stage('ubuntu:xenial-amd64') {
-                    steps {
-                        sh "docker build --label build.source=${env.BRANCH_NAME} --label build.number=${env.BUILD_NUMBER} --build-arg VERSION=xenial . -t xenial:amd64.${env.BRANCH_NAME}.${env.BUILD_NUMBER} --compress"
-                    }
-                }
-
-                stage('ubuntu:bionic-arm64') {
-                    agent {
-                        label 'arm64'
-                    }
-                    steps {
-                        sh "docker build --label build.source=${env.BRANCH_NAME} --label build.number=${env.BUILD_NUMBER} --build-arg VERSION=bionic --build-arg ARCH=arm64 . -t bionic:arm64.${env.BRANCH_NAME}.${env.BUILD_NUMBER} --compress"
-                    }
-                }
-
-                stage('ubuntu:xenial-arm64') {
-                    agent {
-                        label 'arm64'
-                    }
-                    steps {
-                        sh "docker build --label build.source=${env.BRANCH_NAME} --label build.number=${env.BUILD_NUMBER} --build-arg VERSION=xenial --build-arg ARCH=arm64 . -t xenial:arm64.${env.BRANCH_NAME}.${env.BUILD_NUMBER} --compress"
-                    }
-                }
+        stage('ubuntu:xenial-amd64') {
+          steps {
+            sh "docker tag xenial:amd64.${env.BRANCH_NAME}.${env.BUILD_NUMBER} ${imageName}:ubuntu-16.04-amd64"
+            withDockerRegistry(registry: [credentialsId: 'vio-docker-hub']) {
+              sh "docker push ${imageName}:ubuntu-16.04-amd64"
             }
+            sh "docker tag xenial:amd64.${env.BRANCH_NAME}.${env.BUILD_NUMBER} ${imageName}:xenial-amd64"
+            withDockerRegistry(registry: [credentialsId: 'vio-docker-hub']) {
+              sh "docker push ${imageName}:xenial-amd64"
+            }
+          }
         }
 
-        stage('Publish Images') {
-            when {
-                branch 'master'
+        stage('ubuntu:focal-amd64') {
+          steps {
+            sh "docker tag focal:amd64.${env.BRANCH_NAME}.${env.BUILD_NUMBER} ${imageName}:ubuntu-20.04-amd64"
+            withDockerRegistry(registry: [credentialsId: 'vio-docker-hub']) {
+              sh "docker push ${imageName}:ubuntu-20.04-amd64"
             }
-            parallel {
-                stage('ubuntu:bionic-amd64') {
-                    steps {
-                        sh "docker tag bionic:amd64.${env.BRANCH_NAME}.${env.BUILD_NUMBER} ${imageName}:ubuntu-18.04-amd64"
-                        withDockerRegistry(registry: [credentialsId: 'vio-docker-hub']) {
-                            sh "docker push ${imageName}:ubuntu-18.04-amd64"
-                        }
-                        sh "docker tag bionic:amd64.${env.BRANCH_NAME}.${env.BUILD_NUMBER} ${imageName}:bionic-amd64"
-                        withDockerRegistry(registry: [credentialsId: 'vio-docker-hub']) {
-                            sh "docker push ${imageName}:bionic-amd64"
-                        }
-                        sh "docker tag bionic:amd64.${env.BRANCH_NAME}.${env.BUILD_NUMBER} ${imageName}:latest-amd64"
-                        withDockerRegistry(registry: [credentialsId: 'vio-docker-hub']) {
-                            sh "docker push ${imageName}:latest-amd64"
-                        }
-                    }
-                }
-
-                stage('ubuntu:xenial-amd64') {
-                    steps {
-                        sh "docker tag xenial:amd64.${env.BRANCH_NAME}.${env.BUILD_NUMBER} ${imageName}:ubuntu-16.04-amd64"
-                        withDockerRegistry(registry: [credentialsId: 'vio-docker-hub']) {
-                            sh "docker push ${imageName}:ubuntu-16.04-amd64"
-                        }
-                        sh "docker tag xenial:amd64.${env.BRANCH_NAME}.${env.BUILD_NUMBER} ${imageName}:xenial-amd64"
-                        withDockerRegistry(registry: [credentialsId: 'vio-docker-hub']) {
-                            sh "docker push ${imageName}:xenial-amd64"
-                        }
-                    }
-                }
-
-                stage('ubuntu:bionic-arm64') {
-                    agent {
-                        label 'arm64'
-                    }
-                    steps {
-                        sh "docker tag bionic:arm64.${env.BRANCH_NAME}.${env.BUILD_NUMBER} ${imageName}:ubuntu-18.04-arm64"
-                        withDockerRegistry(registry: [credentialsId: 'vio-docker-hub']) {
-                            sh "docker push ${imageName}:ubuntu-18.04-arm64"
-                        }
-                        sh "docker tag bionic:arm64.${env.BRANCH_NAME}.${env.BUILD_NUMBER} ${imageName}:bionic-arm64"
-                        withDockerRegistry(registry: [credentialsId: 'vio-docker-hub']) {
-                            sh "docker push ${imageName}:bionic-arm64"
-                        }
-                        sh "docker tag bionic:arm64.${env.BRANCH_NAME}.${env.BUILD_NUMBER} ${imageName}:latest-arm64"
-                        withDockerRegistry(registry: [credentialsId: 'vio-docker-hub']) {
-                            sh "docker push ${imageName}:latest-arm64"
-                        }
-                    }
-                }
-
-                stage('ubuntu:xenial-arm64') {
-                    agent {
-                        label 'arm64'
-                    }
-                    steps {
-                        sh "docker tag xenial:arm64.${env.BRANCH_NAME}.${env.BUILD_NUMBER} ${imageName}:ubuntu-16.04-arm64"
-                        withDockerRegistry(registry: [credentialsId: 'vio-docker-hub']) {
-                            sh "docker push ${imageName}:ubuntu-16.04-arm64"
-                        }
-                        sh "docker tag xenial:arm64.${env.BRANCH_NAME}.${env.BUILD_NUMBER} ${imageName}:xenial-arm64"
-                        withDockerRegistry(registry: [credentialsId: 'vio-docker-hub']) {
-                            sh "docker push ${imageName}:xenial-arm64"
-                        }
-                    }
-                }
+            sh "docker tag focal:amd64.${env.BRANCH_NAME}.${env.BUILD_NUMBER} ${imageName}:focal-amd64"
+            withDockerRegistry(registry: [credentialsId: 'vio-docker-hub']) {
+              sh "docker push ${imageName}:focal-amd64"
             }
+          }
         }
 
-        stage('Publish Manifests') {
-            when {
-                branch 'master'
+        stage('ubuntu:bionic-arm64') {
+          agent {
+            label 'arm64'
+          }
+          steps {
+            sh "docker tag bionic:arm64.${env.BRANCH_NAME}.${env.BUILD_NUMBER} ${imageName}:ubuntu-18.04-arm64"
+            withDockerRegistry(registry: [credentialsId: 'vio-docker-hub']) {
+              sh "docker push ${imageName}:ubuntu-18.04-arm64"
             }
-            parallel {
-                stage('latest') {
-                    steps {
-                        withDockerRegistry(registry: [credentialsId: 'vio-docker-hub']) {
-                            sh "docker manifest create --amend ${imageName}:latest ${imageName}:latest-amd64 ${imageName}:latest-arm64"
-                            sh "docker manifest push --purge ${imageName}:latest"
-                        }
-                    }
-                }
-
-                stage('bionic') {
-                    steps {
-                        withDockerRegistry(registry: [credentialsId: 'vio-docker-hub']) {
-                            sh "docker manifest create --amend ${imageName}:bionic ${imageName}:bionic-amd64 ${imageName}:bionic-arm64"
-                            sh "docker manifest push --purge ${imageName}:bionic"
-                        }
-                    }
-                }
-
-                stage('ubuntu-18.04') {
-                    steps {
-                        withDockerRegistry(registry: [credentialsId: 'vio-docker-hub']) {
-                            sh "docker manifest create --amend ${imageName}:ubuntu-18.04 ${imageName}:ubuntu-18.04-amd64 ${imageName}:ubuntu-18.04-arm64"
-                            sh "docker manifest push --purge ${imageName}:ubuntu-18.04"
-                        }
-                    }
-                }
-
-                stage('xenial') {
-                    steps {
-                        withDockerRegistry(registry: [credentialsId: 'vio-docker-hub']) {
-                            sh "docker manifest create --amend ${imageName}:xenial ${imageName}:xenial-amd64 ${imageName}:xenial-arm64"
-                            sh "docker manifest push --purge ${imageName}:xenial"
-                        }
-                    }
-                }
-
-                stage('ubuntu-16.04') {
-                    steps {
-                        withDockerRegistry(registry: [credentialsId: 'vio-docker-hub']) {
-                            sh "docker manifest create --amend ${imageName}:ubuntu-16.04 ${imageName}:ubuntu-16.04-amd64 ${imageName}:ubuntu-16.04-arm64"
-                            sh "docker manifest push --purge ${imageName}:ubuntu-16.04"
-                        }
-                    }
-                }
+            sh "docker tag bionic:arm64.${env.BRANCH_NAME}.${env.BUILD_NUMBER} ${imageName}:bionic-arm64"
+            withDockerRegistry(registry: [credentialsId: 'vio-docker-hub']) {
+              sh "docker push ${imageName}:bionic-arm64"
             }
+            sh "docker tag bionic:arm64.${env.BRANCH_NAME}.${env.BUILD_NUMBER} ${imageName}:latest-arm64"
+            withDockerRegistry(registry: [credentialsId: 'vio-docker-hub']) {
+              sh "docker push ${imageName}:latest-arm64"
+            }
+          }
         }
+
+        stage('ubuntu:xenial-arm64') {
+          agent {
+            label 'arm64'
+          }
+          steps {
+            sh "docker tag xenial:arm64.${env.BRANCH_NAME}.${env.BUILD_NUMBER} ${imageName}:ubuntu-16.04-arm64"
+            withDockerRegistry(registry: [credentialsId: 'vio-docker-hub']) {
+              sh "docker push ${imageName}:ubuntu-16.04-arm64"
+            }
+            sh "docker tag xenial:arm64.${env.BRANCH_NAME}.${env.BUILD_NUMBER} ${imageName}:xenial-arm64"
+            withDockerRegistry(registry: [credentialsId: 'vio-docker-hub']) {
+              sh "docker push ${imageName}:xenial-arm64"
+            }
+          }
+        }
+
+        stage('ubuntu:focal-arm64') {
+          agent {
+            label 'arm64'
+          }
+          steps {
+            sh "docker tag focal:arm64.${env.BRANCH_NAME}.${env.BUILD_NUMBER} ${imageName}:ubuntu-20.04-arm64"
+            withDockerRegistry(registry: [credentialsId: 'vio-docker-hub']) {
+              sh "docker push ${imageName}:ubuntu-20.04-arm64"
+            }
+            sh "docker tag focal:arm64.${env.BRANCH_NAME}.${env.BUILD_NUMBER} ${imageName}:focal-arm64"
+            withDockerRegistry(registry: [credentialsId: 'vio-docker-hub']) {
+              sh "docker push ${imageName}:focal-arm64"
+            }
+          }
+        }
+      }
     }
+
+    stage('Publish Manifests') {
+      when {
+        branch 'master'
+      }
+
+      parallel {
+        stage('latest') {
+          steps {
+            withDockerRegistry(registry: [credentialsId: 'vio-docker-hub']) {
+              sh "docker manifest create --amend ${imageName}:latest ${imageName}:latest-amd64 ${imageName}:latest-arm64"
+              sh "docker manifest push --purge ${imageName}:latest"
+            }
+          }
+        }
+
+        stage('bionic') {
+          steps {
+            withDockerRegistry(registry: [credentialsId: 'vio-docker-hub']) {
+              sh "docker manifest create --amend ${imageName}:bionic ${imageName}:bionic-amd64 ${imageName}:bionic-arm64"
+              sh "docker manifest push --purge ${imageName}:bionic"
+            }
+          }
+        }
+
+        stage('ubuntu-18.04') {
+          steps {
+            withDockerRegistry(registry: [credentialsId: 'vio-docker-hub']) {
+              sh "docker manifest create --amend ${imageName}:ubuntu-18.04 ${imageName}:ubuntu-18.04-amd64 ${imageName}:ubuntu-18.04-arm64"
+              sh "docker manifest push --purge ${imageName}:ubuntu-18.04"
+            }
+          }
+        }
+
+        stage('xenial') {
+          steps {
+            withDockerRegistry(registry: [credentialsId: 'vio-docker-hub']) {
+              sh "docker manifest create --amend ${imageName}:xenial ${imageName}:xenial-amd64 ${imageName}:xenial-arm64"
+              sh "docker manifest push --purge ${imageName}:xenial"
+            }
+          }
+        }
+
+        stage('ubuntu-16.04') {
+          steps {
+            withDockerRegistry(registry: [credentialsId: 'vio-docker-hub']) {
+              sh "docker manifest create --amend ${imageName}:ubuntu-16.04 ${imageName}:ubuntu-16.04-amd64 ${imageName}:ubuntu-16.04-arm64"
+              sh "docker manifest push --purge ${imageName}:ubuntu-16.04"
+            }
+          }
+        }
+
+        stage('focal') {
+          steps {
+            withDockerRegistry(registry: [credentialsId: 'vio-docker-hub']) {
+              sh "docker manifest create --amend ${imageName}:focal ${imageName}:xenial-amd64 ${imageName}:focal-arm64"
+              sh "docker manifest push --purge ${imageName}:focal"
+            }
+          }
+        }
+
+        stage('ubuntu-20.04') {
+          steps {
+            withDockerRegistry(registry: [credentialsId: 'vio-docker-hub']) {
+              sh "docker manifest create --amend ${imageName}:ubuntu-20.04 ${imageName}:ubuntu-20.04-amd64 ${imageName}:ubuntu-20.04-arm64"
+              sh "docker manifest push --purge ${imageName}:ubuntu-20.04"
+            }
+          }
+        }
+      }
+    }
+  }
 }
