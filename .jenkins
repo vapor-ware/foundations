@@ -266,7 +266,7 @@ pipeline {
         stage('focal') {
           steps {
             withDockerRegistry(registry: [credentialsId: 'vio-docker-hub']) {
-              sh "docker manifest create --amend ${imageName}:focal ${imageName}:xenial-amd64 ${imageName}:focal-arm64"
+              sh "docker manifest create --amend ${imageName}:focal ${imageName}:focal-amd64 ${imageName}:focal-arm64"
               sh "docker manifest push --purge ${imageName}:focal"
             }
           }
