@@ -49,7 +49,7 @@ if [ -z "$gpgFingerprint" ]; then
 else
 	export GNUPGHOME="$(mktemp -d)"
 	trap "rm -r '$GNUPGHOME'" EXIT
-	gpg --keyserver ha.pool.sks-keyservers.net --recv-keys "$gpgFingerprint"
+	gpg --keyserver hkp://keyserver.ubuntu.com --recv-keys "$gpgFingerprint"
 fi
 
 for sums in sha256 sha1 md5; do
