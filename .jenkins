@@ -49,14 +49,14 @@ pipeline {
           }
         }
 
-        stage('ubuntu:focal-arm64') {
-          agent {
-            label 'arm64'
-          }
-          steps {
-            sh './update.sh focal'
-          }
-        }
+//        stage('ubuntu:focal-arm64') {
+//          agent {
+//            label 'arm64'
+//          }
+//          steps {
+//            sh './update.sh focal'
+//          }
+//        }
       }
     }
 
@@ -98,14 +98,14 @@ pipeline {
           }
         }
 
-        stage('ubuntu:focal-arm64') {
-          agent {
-            label 'arm64'
-          }
-          steps {
-            sh "docker build --label build.source=${env.BRANCH_NAME} --label build.number=${env.BUILD_NUMBER} --build-arg VERSION=focal --build-arg ARCH=arm64 . -t focal:arm64.${env.BRANCH_NAME}.${env.BUILD_NUMBER} --compress"
-          }
-        }
+//        stage('ubuntu:focal-arm64') {
+//          agent {
+//            label 'arm64'
+//          }
+//          steps {
+//            sh "docker build --label build.source=${env.BRANCH_NAME} --label build.number=${env.BUILD_NUMBER} --build-arg VERSION=focal --build-arg ARCH=arm64 . -t focal:arm64.${env.BRANCH_NAME}.${env.BUILD_NUMBER} --compress"
+//          }
+//        }
       }
     }
 
@@ -194,21 +194,21 @@ pipeline {
           }
         }
 
-        stage('ubuntu:focal-arm64') {
-          agent {
-            label 'arm64'
-          }
-          steps {
-            sh "docker tag focal:arm64.${env.BRANCH_NAME}.${env.BUILD_NUMBER} ${imageName}:ubuntu-20.04-arm64"
-            withDockerRegistry(registry: [credentialsId: 'vio-docker-hub']) {
-              sh "docker push ${imageName}:ubuntu-20.04-arm64"
-            }
-            sh "docker tag focal:arm64.${env.BRANCH_NAME}.${env.BUILD_NUMBER} ${imageName}:focal-arm64"
-            withDockerRegistry(registry: [credentialsId: 'vio-docker-hub']) {
-              sh "docker push ${imageName}:focal-arm64"
-            }
-          }
-        }
+//        stage('ubuntu:focal-arm64') {
+//          agent {
+//            label 'arm64'
+//          }
+//          steps {
+//            sh "docker tag focal:arm64.${env.BRANCH_NAME}.${env.BUILD_NUMBER} ${imageName}:ubuntu-20.04-arm64"
+//            withDockerRegistry(registry: [credentialsId: 'vio-docker-hub']) {
+//              sh "docker push ${imageName}:ubuntu-20.04-arm64"
+//            }
+//            sh "docker tag focal:arm64.${env.BRANCH_NAME}.${env.BUILD_NUMBER} ${imageName}:focal-arm64"
+//            withDockerRegistry(registry: [credentialsId: 'vio-docker-hub']) {
+//              sh "docker push ${imageName}:focal-arm64"
+//            }
+//          }
+//        }
       }
     }
 
@@ -272,14 +272,14 @@ pipeline {
           }
         }
 
-        stage('ubuntu-20.04') {
-          steps {
-            withDockerRegistry(registry: [credentialsId: 'vio-docker-hub']) {
-              sh "docker manifest create --amend ${imageName}:ubuntu-20.04 ${imageName}:ubuntu-20.04-amd64 ${imageName}:ubuntu-20.04-arm64"
-              sh "docker manifest push --purge ${imageName}:ubuntu-20.04"
-            }
-          }
-        }
+//        stage('ubuntu-20.04') {
+//          steps {
+//            withDockerRegistry(registry: [credentialsId: 'vio-docker-hub']) {
+//              sh "docker manifest create --amend ${imageName}:ubuntu-20.04 ${imageName}:ubuntu-20.04-amd64 ${imageName}:ubuntu-20.04-arm64"
+//              sh "docker manifest push --purge ${imageName}:ubuntu-20.04"
+//            }
+//          }
+//        }
       }
     }
   }
